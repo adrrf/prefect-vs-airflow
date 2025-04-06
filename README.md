@@ -1,2 +1,3 @@
-# prefect
-a repository for exploring the worlflow orchestrator prefect
+# prefect vs airflow
+a repository for comparing the workflow orchestrators: prefect and airflow
+
