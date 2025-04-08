@@ -1,0 +1,12 @@
+# We're using the latest version of Prefect with Python 3.10
+FROM prefecthq/prefect:3-latest
+
+# RUN chown -R /opt/prefect/entrypoint.sh
+RUN chmod +x /opt/prefect/entrypoint.sh
+
+# Add our requirements.txt file to the image and install dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt --trusted-host pypi.python.org --no-cache-dir
+
+RUN prefect block register -m prefect_sqlalchemy
+COPY ./src/* /opt/prefect/

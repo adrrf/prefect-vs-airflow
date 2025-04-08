@@ -1,0 +1,6 @@
+prefect
+prefect[sqlalchemy]
+pyhive
+sqlalchemy
+thrift
+thrift-sasl
