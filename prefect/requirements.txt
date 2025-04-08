@@ -4,3 +4,4 @@ pyhive
 sqlalchemy
 thrift
 thrift-sasl
+confluent-kafka

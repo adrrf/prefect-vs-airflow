@@ -6,4 +6,9 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "prefect[sqlalchemy]>=3.3.3",
+    "confluent-kafka>=2.8.2",
+    "pyhive>=0.7.0",
+    "thrift>=0.21.0",
+    "thrift-sasl>=0.4.3",
+    "sqlalchemy>=2.0.40",
 ]

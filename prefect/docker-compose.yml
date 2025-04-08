@@ -253,7 +253,7 @@ services:
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:9092
     ports:
-      - "8080:8080"
+      - "8081:8080"
     networks:
       - prefect_network
   
@@ -274,9 +274,6 @@ services:
     entrypoint:
       /bin/bash -c "
       prefect server stop &&
-      prefect server start --host 0.0.0.0 -b &&
-      sleep 5 &&
-      python /opt/prefect/utils/setup-hive.py &&
-      tail -f /dev/null" # Keep container alive
+      prefect server start --host 0.0.0.0"
     networks:
       - prefect_network
