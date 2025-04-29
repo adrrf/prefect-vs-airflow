@@ -1,2 +1,4 @@
 hadoop_datanode*
 hadoop_namenode
+.env
+*/__pychache__/

@@ -3,11 +3,11 @@ import json
 from confluent_kafka import Producer
 
 from typing import NamedTuple
-from datetime import datetime, timedelta
-import logging
 
+from prefect.blocks.notifications import DiscordWebhook
 from prefect_sqlalchemy import SqlAlchemyConnector
 from prefect import flow, task
+from prefect.runtime import flow_run
 from prefect.logging import get_run_logger
 
 KAFKA_TOPIC = "sensores"
@@ -18,6 +18,8 @@ HIVE_TABLE = "weather.sensor_data"
 conf = {"bootstrap.servers": "kafka:9092"}
 
 producer = Producer(conf)
+
+discord_notifier = DiscordWebhook.load("discord-failure")
 
 
 class Weather(NamedTuple):
@@ -56,124 +58,186 @@ def publish_csv():
 
         producer.flush()
     except Exception as e:
-        logger.error(f"❌ Error al leer el archivo: {e}")
+        #         discord_notifier.notify(
+        #             f"""
+        # Flow name: {flow_run.flow_name}
+        # Flow run ID: {flow_run.id}
+        # Task name: publish_csv
+        # Error: {e}
+        # """
+        #         )
         raise
 
 
 @task
 def create_database():
     logger = get_run_logger()
-    with SqlAlchemyConnector.load("hive") as connector:
-        connector.execute("CREATE DATABASE IF NOT EXISTS weather")
-        logger.info("✅ Base de datos 'weather' creada correctamente en Hive")
+    try:
+        with SqlAlchemyConnector.load("hive") as connector:
+            connector.execute("CREATE DATABASE IF NOT EXISTS weather")
+            logger.info("✅ Base de datos 'weather' creada correctamente en Hive")
+    except Exception as e:
+        discord_notifier.notify(
+            f"""
+                Flow name: {flow_run.flow_name}
+                Flow run ID: {flow_run.id}
+                Task name: create_database
+                Error: {e}
+                """
+        )
+        raise
 
 
 @task
 def create_table():
     logger = get_run_logger()
-    with SqlAlchemyConnector.load("hive") as connector:
-        connector.execute(f"""
-            CREATE EXTERNAL TABLE IF NOT EXISTS {HIVE_TABLE} (
-                `timestamp` DATE,
-                temperature_salon FLOAT,
-                humidity_salon FLOAT,
-                air_salon FLOAT,
-                temperature_chambre FLOAT,
-                humidity_chambre FLOAT,
-                air_chambre FLOAT,
-                temperature_bureau FLOAT,
-                humidity_bureau FLOAT,
-                air_bureau FLOAT,
-                temperature_exterieur FLOAT,
-                humidity_exterieur FLOAT,
-                air_exterieur FLOAT
-            )
-            ROW FORMAT SERDE 'org.apache.hive.hcatalog.data.JsonSerDe'
-            STORED AS TEXTFILE
-            LOCATION 'hdfs://namenode:9000{HDFS_DIR}'
-        """)
-        logger.info("✅ Tabla creada correctamente en Hive")
+    try:
+        with SqlAlchemyConnector.load("hive") as connector:
+            connector.execute(f"""
+                CREATE EXTERNAL TABLE IF NOT EXISTS {HIVE_TABLE} (
+                    `timestamp` DATE,
+                    temperature_salon FLOAT,
+                    humidity_salon FLOAT,
+                    air_salon FLOAT,
+                    temperature_chambre FLOAT,
+                    humidity_chambre FLOAT,
+                    air_chambre FLOAT,
+                    temperature_bureau FLOAT,
+                    humidity_bureau FLOAT,
+                    air_bureau FLOAT,
+                    temperature_exterieur FLOAT,
+                    humidity_exterieur FLOAT,
+                    air_exterieur FLOAT
+                )
+                ROW FORMAT SERDE 'org.apache.hive.hcatalog.data.JsonSerDe'
+                STORED AS TEXTFILE
+                LOCATION 'hdfs://namenode:9000{HDFS_DIR}'
+            """)
+            logger.info("✅ Tabla creada correctamente en Hive")
+    except Exception as e:
+        discord_notifier.notify(
+            f"""
+                Flow name: {flow_run.flow_name}
+                Flow run ID: {flow_run.id}
+                Task name: create_table
+                Error: {e}
+                """
+        )
+        raise
 
 
 @task
 def query_hive_temps_by_date():
     logger = get_run_logger()
-    with SqlAlchemyConnector.load("hive") as connector:
-        rows = connector.execute(f"""
-             SELECT
-             DATE(`timestamp`) AS record_date,
-             AVG(temperature_salon) AS avg_temp_salon,
-             AVG(temperature_chambre) AS avg_temp_chambre,
-             AVG(temperature_bureau) AS avg_temp_bureau,
-             AVG(temperature_exterieur) AS avg_temp_exterieur
-             FROM {HIVE_TABLE}
-             GROUP BY DATE(`timestamp`)
-             ORDER BY record_date
-        """).fetchall()
+    try:
+        with SqlAlchemyConnector.load("hive") as connector:
+            rows = connector.execute(f"""
+                 SELECT
+                 DATE(`timestamp`) AS record_date,
+                 AVG(temperature_salon) AS avg_temp_salon,
+                 AVG(temperature_chambre) AS avg_temp_chambre,
+                 AVG(temperature_bureau) AS avg_temp_bureau,
+                 AVG(temperature_exterieur) AS avg_temp_exterieur
+                 FROM {HIVE_TABLE}
+                 GROUP BY DATE(`timestamp`)
+                 ORDER BY record_date
+            """).fetchall()
 
-        logger.info("Resultados de Hive:")
-        logger.info(
-            "Fecha | Temp. Salón | Temp. Chambre | Temp. Bureau | Temp. Exterieur"
+            logger.info("Resultados de Hive:")
+            logger.info(
+                "Fecha | Temp. Salón | Temp. Chambre | Temp. Bureau | Temp. Exterieur"
+            )
+            for row in rows:
+                logger.info(row)
+    except Exception as e:
+        discord_notifier.notify(
+            f"""
+                Flow name: {flow_run.flow_name}
+                Flow run ID: {flow_run.id}
+                Task name: query_hive_temps_by_date
+                Error: {e}
+                """
         )
-        for row in rows:
-            logger.info(row)
+        raise
 
 
 @task
 def query_hive_worst_air_quality():
     logger = get_run_logger()
-    with SqlAlchemyConnector.load("hive") as connector:
-        rows = connector.execute(f"""
-             SELECT
-             `timestamp`,
-             air_salon,
-             air_chambre,
-             air_bureau,
-             air_exterieur,
-             GREATEST(air_salon, air_chambre, air_bureau, air_exterieur) AS max_air_quality
-             FROM {HIVE_TABLE}
-             ORDER BY max_air_quality DESC 
-        """).fetchall()
+    try:
+        with SqlAlchemyConnector.load("hive") as connector:
+            rows = connector.execute(f"""
+                 SELECT
+                 `timestamp`,
+                 air_salon,
+                 air_chambre,
+                 air_bureau,
+                 air_exterieur,
+                 GREATEST(air_salon, air_chambre, air_bureau, air_exterieur) AS max_air_quality
+                 FROM {HIVE_TABLE}
+                 ORDER BY max_air_quality DESC 
+            """).fetchall()
 
-        logger.info("Días con peor calidad de aire en cualquier parte de la casa:")
-        logger.info(
-            "Fecha | Calidad Salón | Calidad Chambre | Calidad Bureau | Calidad Exterieur"
+            logger.info("Días con peor calidad de aire en cualquier parte de la casa:")
+            logger.info(
+                "Fecha | Calidad Salón | Calidad Chambre | Calidad Bureau | Calidad Exterieur"
+            )
+            for row in rows:
+                logger.info(row[:-1])
+    except Exception as e:
+        discord_notifier.notify(
+            f"""
+                Flow name: {flow_run.flow_name}
+                Flow run ID: {flow_run.id}
+                Task name: query_hive_worst_air_quality
+                Error: {e}
+                """
         )
-        for row in rows:
-            logger.info(row[:-1])
+        raise
 
 
 @task
 def query_hive_hummidity_changes():
     logger = get_run_logger()
-    with SqlAlchemyConnector.load("hive") as connector:
-        rows = connector.execute(f"""
-                SELECT
-                `timestamp`,
-                (1 - (humidity_salon/previous_humidity_salon)) AS change_salon,
-                (1 - (humidity_chambre/previous_humidity_chambre)) AS change_chambre,
-                (1 - (humidity_bureau/previous_humidity_bureau)) AS change_bureau,
-                (1 - (humidity_exterieur/previous_humidity_exterieur)) AS change_exterieur
-            FROM (
-                SELECT `timestamp`, humidity_salon, humidity_chambre, humidity_bureau, humidity_exterieur,
-                    LAG(humidity_salon, 4, humidity_salon) OVER (ORDER BY `timestamp`) AS previous_humidity_salon,
-                    LAG(humidity_chambre, 4, humidity_chambre) OVER (ORDER BY `timestamp`) AS previous_humidity_chambre,
-                    LAG(humidity_bureau, 4, humidity_bureau) OVER (ORDER BY `timestamp`) AS previous_humidity_bureau,
-                    LAG(humidity_exterieur, 4, humidity_exterieur) OVER (ORDER BY `timestamp`) AS previous_humidity_exterieur
-                FROM {HIVE_TABLE}
-            ) AS t
-            WHERE ABS(1 - (humidity_salon/previous_humidity_salon)) > 0.1
-                OR ABS(1 - (humidity_chambre/previous_humidity_chambre)) > 0.1
-                OR ABS(1 - (humidity_bureau/previous_humidity_bureau)) > 0.1
-                OR ABS(1 - (humidity_exterieur/previous_humidity_exterieur)) > 0.1
-        """).fetchall()
+    try:
+        with SqlAlchemyConnector.load("hive") as connector:
+            rows = connector.execute(f"""
+                    SELECT
+                    `timestamp`,
+                    (1 - (humidity_salon/previous_humidity_salon)) AS change_salon,
+                    (1 - (humidity_chambre/previous_humidity_chambre)) AS change_chambre,
+                    (1 - (humidity_bureau/previous_humidity_bureau)) AS change_bureau,
+                    (1 - (humidity_exterieur/previous_humidity_exterieur)) AS change_exterieur
+                FROM (
+                    SELECT `timestamp`, humidity_salon, humidity_chambre, humidity_bureau, humidity_exterieur,
+                        LAG(humidity_salon, 4, humidity_salon) OVER (ORDER BY `timestamp`) AS previous_humidity_salon,
+                        LAG(humidity_chambre, 4, humidity_chambre) OVER (ORDER BY `timestamp`) AS previous_humidity_chambre,
+                        LAG(humidity_bureau, 4, humidity_bureau) OVER (ORDER BY `timestamp`) AS previous_humidity_bureau,
+                        LAG(humidity_exterieur, 4, humidity_exterieur) OVER (ORDER BY `timestamp`) AS previous_humidity_exterieur
+                    FROM {HIVE_TABLE}
+                ) AS t
+                WHERE ABS(1 - (humidity_salon/previous_humidity_salon)) > 0.1
+                    OR ABS(1 - (humidity_chambre/previous_humidity_chambre)) > 0.1
+                    OR ABS(1 - (humidity_bureau/previous_humidity_bureau)) > 0.1
+                    OR ABS(1 - (humidity_exterieur/previous_humidity_exterieur)) > 0.1
+            """).fetchall()
 
-        logger.info("Resultados de Hive:")
-        logger.info(
-            "Fecha | Cambio Salón | Cambio Chambre | Cambio Bureau | Cambio Exterieur"
+            logger.info("Resultados de Hive:")
+            logger.info(
+                "Fecha | Cambio Salón | Cambio Chambre | Cambio Bureau | Cambio Exterieur"
+            )
+            for row in rows:
+                logger.info(row)
+    except Exception as e:
+        discord_notifier.notify(
+            f"""
+                Flow name: {flow_run.flow_name}
+                Flow run ID: {flow_run.id}
+                Task name: query_hive_hummidity_changes
+                Error: {e}
+                """
         )
-        for row in rows:
-            logger.info(row)
+        raise
 
 
 # Definición de tareas en Airflow
@@ -188,4 +252,6 @@ def fuck_airflow() -> list:
 
 
 if __name__ == "__main__":
-    fuck_airflow()
+    fuck_airflow.serve(
+        name="fuck_airflow",
+    )

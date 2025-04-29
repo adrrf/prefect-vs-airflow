@@ -270,6 +270,8 @@ services:
       - ./prefect:/opt/prefect:z
     environment:
       - PREFECT_API_URL=http://127.0.0.1:4200/api
+      - DISCORD_WEBHOOK_ID=${DISCORD_WEBHOOK_ID}
+      - DISCORD_WEBHOOK_TOKEN=${DISCORD_WEBHOOK_TOKEN}
     command: ["/bin/bash", "-c", "prefect server start --host 0.0.0.0"]
     entrypoint:
       /bin/bash -c "
