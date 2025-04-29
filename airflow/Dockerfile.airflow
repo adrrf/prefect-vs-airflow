@@ -22,5 +22,3 @@ RUN pip install --no-cache-dir "apache-airflow-providers-openlineage>=1.8.0"
 RUN pip install --no-cache-dir apache-airflow-providers-apache-hdfs
 RUN pip install --no-cache-dir apache-airflow-providers-apache-hive
 RUN pip install --no-cache-dir apache-airflow-providers-apache-kafka
-
-
