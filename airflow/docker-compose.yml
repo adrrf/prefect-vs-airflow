@@ -282,3 +282,15 @@ services:
       - "8081:8080" # UI de Airflow
     networks:
       - airflow_network
+        
+  # Fake api
+  fake-api:
+    build:
+      context: ../fakeapi/
+    container_name: fake-api
+    hostname: fake-api
+    ports:
+      - "80:80"
+    networks:
+      - airflow_network
+

@@ -279,3 +279,14 @@ services:
       prefect server start --host 0.0.0.0"
     networks:
       - prefect_network
+
+  # Fake api
+  fake-api:
+    build:
+      context: ../fakeapi/
+    container_name: fake-api
+    hostname: fake-api
+    ports:
+      - "80:80"
+    networks:
+      - prefect_network

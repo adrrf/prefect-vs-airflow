@@ -2,4 +2,4 @@ hadoop_datanode*
 hadoop_namenode
 .env
 .venv
-*/__pychache__/
+__pycache__
