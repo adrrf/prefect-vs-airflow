@@ -24,4 +24,6 @@ RUN pip install --no-cache-dir apache-airflow-providers-apache-hive
 RUN pip install --no-cache-dir apache-airflow-providers-apache-kafka
 
 RUN mkdir -p /opt/airflow/dags
-COPY ./src /opt/airflow/dags
+COPY ./src /opt/airflow
+
+ENV PATH /opt/airflow:$PATH

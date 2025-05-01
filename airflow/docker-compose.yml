@@ -267,6 +267,7 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
       - AIRFLOW__CORE__FERNET_KEY='d6nNXtWJQL85dCkOTB8FRQ5TPAi6XW7Xbw3l84QJ8q8='
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
     volumes:
       - ./airflow:/opt/airflow
       - ../monitoring/main.py:/opt/airflow/monitoring.py

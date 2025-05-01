@@ -5,6 +5,7 @@ import httpx
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.exceptions import AirflowException, AirflowTaskTimeout
+from config.airflow_config import default_args
 
 
 def fetch_fakeapi(**kwargs) -> dict[str, Any]:
@@ -13,7 +14,7 @@ def fetch_fakeapi(**kwargs) -> dict[str, Any]:
         response = httpx.get("http://fake-api/").json()
         if "status_code" in response and response["status_code"] > 400:
             raise AirflowException("API returned an error")
-        return response
+        return None
     except httpx.ReadTimeout:
         raise AirflowTaskTimeout
 
@@ -23,12 +24,6 @@ def show_fakeapi_response(**kwargs) -> None:
     response = ti.xcom_pull(task_ids="fetch_fakeapi")
     print(response)
 
-
-default_args = {
-    "owner": "airflow",
-    "retries": 3,
-    "retry_delay": timedelta(0),
-}
 
 with DAG(
     dag_id="show_fakeapi_response_dag",
