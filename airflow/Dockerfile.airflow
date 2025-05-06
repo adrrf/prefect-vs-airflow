@@ -27,3 +27,4 @@ RUN mkdir -p /opt/airflow/dags
 COPY ./src /opt/airflow
 
 ENV PATH /opt/airflow:$PATH
+ENV PYTHONPATH /opt/airflow:$PYTHONPATH
