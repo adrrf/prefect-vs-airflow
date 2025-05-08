@@ -10,4 +10,6 @@ RUN pip install -r requirements.txt --trusted-host pypi.python.org --no-cache-di
 
 RUN prefect block register -m prefect_sqlalchemy
 COPY ./prefect/src/. /opt/prefect/
+RUN mkdir -p /opt/prefect/resources
+COPY ./prefect/home_temperature_and_humidity_smoothed_filled.csv /opt/prefect/resources/home_temperature_and_humidity_smoothed_filled.csv
 COPY ./monitoring/main.py /opt/prefect/monitoring.py
