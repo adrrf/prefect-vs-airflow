@@ -1,24 +1,15 @@
 from prefect_sqlalchemy import SqlAlchemyConnector
 from prefect import flow, task
+from prefect.logging import get_run_logger
 
 
 @task
 def setup_table(block_name: str) -> None:
     with SqlAlchemyConnector.load(block_name) as connector:
         connector.execute(
-            "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"
+            "CREATE TABLE IF NOT EXISTS customers (name STRING, address STRING)"
         )
-        connector.execute(
-            "INSERT INTO customers (name, address) VALUES (:name, :address);",
-            parameters={"name": "Marvin", "address": "Highway 42"},
-        )
-        connector.execute_many(
-            "INSERT INTO customers (name, address) VALUES (:name, :address);",
-            seq_of_parameters=[
-                {"name": "Ford", "address": "Highway 42"},
-                {"name": "Unknown", "address": "Highway 42"},
-            ],
-        )
+        connector.execute("INSERT INTO customers VALUES ('Marvin', 'Highway 42')")
 
 
 @task
@@ -37,8 +28,10 @@ def fetch_data(block_name: str) -> list:
 
 @flow
 def sqlalchemy_flow(block_name: str) -> list:
+    logger = get_run_logger()
     setup_table(block_name)
     all_rows = fetch_data(block_name)
+    logger.info(f"Fetched rows: {all_rows}")
     return all_rows
 
 

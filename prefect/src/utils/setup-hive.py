@@ -1,7 +1,29 @@
-from prefect_sqlalchemy import SqlAlchemyConnector
+from prefect_sqlalchemy import SqlAlchemyConnector, ConnectionComponents
 
-connector = SqlAlchemyConnector(
-    connection_url="hive://hive:password@hiveserver2:10000/prefect"
-)
+try:
+    connector = SqlAlchemyConnector(
+        connection_info=ConnectionComponents(
+            driver="hive",
+            username="hive",
+            host="hiveserver2",
+            port=10000,
+        )
+    )
 
-connector.save("hive")
+    connector.execute("CREATE DATABASE IF NOT EXISTS prefect")
+
+    connector = SqlAlchemyConnector(
+        connection_info=ConnectionComponents(
+            driver="hive",
+            username="hive",
+            host="hiveserver2",
+            port=10000,
+            database="prefect",
+        )
+    )
+
+    connector.save("hive", overwrite=True)
+
+except Exception as e:
+    print(f"Error creating connector: {e}")
+    raise
