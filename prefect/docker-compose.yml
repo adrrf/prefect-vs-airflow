@@ -259,8 +259,8 @@ services:
   
   prefect:
     build:
-      context: .
-      dockerfile: Dockerfile.prefect
+      context: ../
+      dockerfile: ./prefect/Dockerfile.prefect
     container_name: prefect
     hostname: prefect
     user: root
